@@ -100,21 +100,21 @@ variable "enable_irsa" {
 variable "eks_managed_node_group_defaults" {
   description = "Default settings for EKS managed node groups"
   type        = map(string)
-  default     = {
+  default = {
     disk_size = "50"
   }
 }
 
 variable "eks_managed_node_groups" {
   description = "Settings for EKS managed node groups"
-  type        = map(object({
-    desired_size    = number
-    min_size        = number
-    max_size        = number
-    labels          = map(string)
-    instance_types  = list(string)
-    capacity_type   = string
-    taints          = list(map(string))
+  type = map(object({
+    desired_size   = number
+    min_size       = number
+    max_size       = number
+    labels         = map(string)
+    instance_types = list(string)
+    capacity_type  = string
+    taints         = list(map(string))
   }))
 }
 
@@ -123,6 +123,6 @@ variable "tags" {
   type        = map(string)
   default = {
     "Environment" = "dev"
-    "Owner" = "Emir"
+    "Owner"       = "Emir"
   }
 }

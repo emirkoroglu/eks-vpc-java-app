@@ -15,10 +15,10 @@ vpc_tags = {
 #########################EKS ###########
 #########
 
-cluster_name = "my-eks"
-cluster_version = "1.23"
+cluster_name                    = "my-eks"
+cluster_version                 = "1.23"
 cluster_endpoint_private_access = true
-cluster_endpoint_public_access = true
+cluster_endpoint_public_access  = true
 
 enable_irsa = true
 
@@ -28,14 +28,14 @@ eks_managed_node_group_defaults = {
 
 eks_managed_node_groups = {
   general = {
-    desired_size     = 1
-    min_size         = 1
-    max_size         = 10
-    labels           = {
+    desired_size = 1
+    min_size     = 1
+    max_size     = 10
+    labels = {
       role = "general"
     }
-    instance_types   = ["t3.small"]
-    capacity_type    = "ON_DEMAND"
+    instance_types = ["t3.small"]
+    capacity_type  = "ON_DEMAND"
     taints = [
       {
         key    = "market"
@@ -45,14 +45,14 @@ eks_managed_node_groups = {
     ]
   }
   spot = {
-    desired_size     = 1
-    min_size         = 1
-    max_size         = 10
-    labels           = {
+    desired_size = 1
+    min_size     = 1
+    max_size     = 10
+    labels = {
       role = "spot"
     }
-    instance_types   = ["t3.micro"]
-    capacity_type    = "SPOT"
+    instance_types = ["t3.micro"]
+    capacity_type  = "SPOT"
     taints = [
       {
         key    = "market"
