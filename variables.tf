@@ -1,3 +1,12 @@
+
+
+variable "region" {
+  description = "The AWS region where resources will be created"
+  type        = string
+  default     = "us-east-2"
+}
+
+##### VPC ####
 variable "vpc_name" {
   type        = string
   description = "The name of the VPC"
@@ -43,44 +52,77 @@ variable "vpc_enable_vpn_gateway" {
 variable "vpc_tags" {
   type        = map(string)
   description = "Additional tags to apply to the VPC resources"
-  default     = {
+  default = {
     Terraform   = "true"
     Environment = "dev"
   }
 }
 
-variable "eks_cluster_name" {
+############### EKS  ##############
+variable "cluster_name" {
+  description = "Name of the EKS cluster"
   type        = string
-  description = "The name of the EKS cluster"
-  default     = "emirs-cluster"
 }
 
-variable "eks_cluster_version" {
+variable "cluster_version" {
+  description = "Version of the EKS cluster"
   type        = string
-  description = "The Kubernetes version to use for the EKS cluster"
-  default     = "1.24"
 }
 
-variable "eks_cluster_endpoint_public_access" {
+variable "cluster_endpoint_private_access" {
+  description = "Whether or not the EKS cluster has private access"
   type        = bool
-  description = "Whether the EKS cluster endpoint is accessible from the public internet"
-  default     = true
 }
 
-variable "eks_vpc_id" {
+variable "cluster_endpoint_public_access" {
+  description = "Whether or not the EKS cluster has public access"
+  type        = bool
+}
+
+variable "vpc_id" {
+  description = "ID of the VPC in which the EKS cluster will be created"
   type        = string
-  description = "The ID of the VPC to use for the EKS cluster"
-  default     = "vpc-070fc52963b339328"
+  default     = null
 }
 
-variable "eks_subnet_ids" {
+variable "subnet_ids" {
+  description = "IDs of the subnets in which the EKS cluster will be created"
   type        = list(string)
-  description = "The IDs of the subnets to use for the EKS cluster"
-  default     = ["subnet-0a7687f4b18561684", "subnet-0059f7b01e092a33b", "subnet-0c43373c16548a6a1"]
+  default     = null
 }
 
-variable "eks_control_plane_subnet_ids" {
-  type        = list(string)
-  description = "The IDs of the subnets to use for the EKS control plane"
-  default     = ["subnet-0a7687f4b18561684", "subnet-0059f7b01e092a33b", "subnet-0c43373c16548a6a1"]
+
+variable "enable_irsa" {
+  description = "Whether or not to enable IAM roles for service accounts (IRSA) for the EKS cluster"
+  type        = bool
+}
+
+variable "eks_managed_node_group_defaults" {
+  description = "Default settings for EKS managed node groups"
+  type        = map(string)
+  default     = {
+    disk_size = "50"
+  }
+}
+
+variable "eks_managed_node_groups" {
+  description = "Settings for EKS managed node groups"
+  type        = map(object({
+    desired_size    = number
+    min_size        = number
+    max_size        = number
+    labels          = map(string)
+    instance_types  = list(string)
+    capacity_type   = string
+    taints          = list(map(string))
+  }))
+}
+
+variable "tags" {
+  description = "Tags to apply to EKS resources"
+  type        = map(string)
+  default = {
+    "Environment" = "dev"
+    "Owner" = "Emir"
+  }
 }
