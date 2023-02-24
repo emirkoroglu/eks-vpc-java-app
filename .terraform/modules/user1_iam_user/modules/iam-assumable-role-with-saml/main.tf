@@ -1,13 +1,40 @@
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+
 locals {
+  account_id                 = data.aws_caller_identity.current.account_id
   identifiers                = compact(distinct(concat(var.provider_ids, [var.provider_id])))
   number_of_role_policy_arns = coalesce(var.number_of_role_policy_arns, length(var.role_policy_arns))
+  partition                  = data.aws_partition.current.partition
+  role_name_condition        = var.role_name != null ? var.role_name : "${var.role_name_prefix}*"
 }
 
 data "aws_iam_policy_document" "assume_role_with_saml" {
-  statement {
-    effect = "Allow"
+  dynamic "statement" {
+    # https://aws.amazon.com/blogs/security/announcing-an-update-to-iam-role-trust-policy-behavior/
+    for_each = var.allow_self_assume_role ? [1] : []
 
-    actions = ["sts:AssumeRoleWithSAML"]
+    content {
+      sid     = "ExplicitSelfRoleAssumption"
+      effect  = "Allow"
+      actions = ["sts:AssumeRole"]
+
+      principals {
+        type        = "AWS"
+        identifiers = ["*"]
+      }
+
+      condition {
+        test     = "ArnLike"
+        variable = "aws:PrincipalArn"
+        values   = ["arn:${local.partition}:iam::${local.account_id}:role${var.role_path}${local.role_name_condition}"]
+      }
+    }
+  }
+
+  statement {
+    effect  = "Allow"
+    actions = compact(distinct(concat(["sts:AssumeRoleWithSAML"], var.trusted_role_actions)))
 
     principals {
       type = "Federated"
@@ -43,6 +70,6 @@ resource "aws_iam_role" "this" {
 resource "aws_iam_role_policy_attachment" "custom" {
   count = var.create_role ? local.number_of_role_policy_arns : 0
 
-  role       = join("", aws_iam_role.this.*.name)
+  role       = aws_iam_role.this[0].name
   policy_arn = var.role_policy_arns[count.index]
 }

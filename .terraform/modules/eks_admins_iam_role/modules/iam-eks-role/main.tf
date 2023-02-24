@@ -1,6 +1,11 @@
 data "aws_caller_identity" "current" {}
-
 data "aws_partition" "current" {}
+
+locals {
+  account_id          = data.aws_caller_identity.current.account_id
+  partition           = data.aws_partition.current.partition
+  role_name_condition = var.role_name != null ? var.role_name : "${var.role_name_prefix}*"
+}
 
 data "aws_eks_cluster" "main" {
   for_each = var.cluster_service_accounts
@@ -10,18 +15,39 @@ data "aws_eks_cluster" "main" {
 
 data "aws_iam_policy_document" "assume_role_with_oidc" {
   dynamic "statement" {
+    # https://aws.amazon.com/blogs/security/announcing-an-update-to-iam-role-trust-policy-behavior/
+    for_each = var.allow_self_assume_role ? [1] : []
+
+    content {
+      sid     = "ExplicitSelfRoleAssumption"
+      effect  = "Allow"
+      actions = ["sts:AssumeRole"]
+
+      principals {
+        type        = "AWS"
+        identifiers = ["*"]
+      }
+
+      condition {
+        test     = "ArnLike"
+        variable = "aws:PrincipalArn"
+        values   = ["arn:${local.partition}:iam::${local.account_id}:role${var.role_path}${local.role_name_condition}"]
+      }
+    }
+  }
+
+  dynamic "statement" {
     for_each = var.cluster_service_accounts
 
     content {
-      effect = "Allow"
-
+      effect  = "Allow"
       actions = ["sts:AssumeRoleWithWebIdentity"]
 
       principals {
         type = "Federated"
 
         identifiers = [
-          "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(data.aws_eks_cluster.main[statement.key].identity[0].oidc[0].issuer, "https://", "")}"
+          "arn:${local.partition}:iam::${local.account_id}:oidc-provider/${replace(data.aws_eks_cluster.main[statement.key].identity[0].oidc[0].issuer, "https://", "")}"
         ]
       }
 

@@ -1,12 +1,3 @@
-data "aws_partition" "current" {}
-data "aws_caller_identity" "current" {}
-
-locals {
-  account_id = data.aws_caller_identity.current.account_id
-  partition  = data.aws_partition.current.partition
-  dns_suffix = data.aws_partition.current.dns_suffix
-}
-
 ################################################################################
 # Cert Manager Policy
 ################################################################################
@@ -235,6 +226,17 @@ data "aws_iam_policy_document" "ebs_csi" {
   }
 
   statement {
+    actions   = ["ec2:DeleteVolume"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringLike"
+      variable = "ec2:ResourceTag/kubernetes.io/created-for/pvc/name"
+      values   = ["*"]
+    }
+  }
+
+  statement {
     actions   = ["ec2:DeleteSnapshot"]
     resources = ["*"]
 
@@ -419,8 +421,16 @@ data "aws_iam_policy_document" "external_secrets" {
   count = var.create_role && var.attach_external_secrets_policy ? 1 : 0
 
   statement {
-    actions   = ["ssm:GetParameter"]
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+    ]
     resources = var.external_secrets_ssm_parameter_arns
+  }
+
+  statement {
+    actions   = ["secretsmanager:ListSecrets"]
+    resources = ["*"]
   }
 
   statement {
@@ -513,24 +523,25 @@ resource "aws_iam_role_policy_attachment" "fsx_lustre_csi" {
 # Karpenter Controller Policy
 ################################################################################
 
-# curl -fsSL https://karpenter.sh/v0.6.1/getting-started/cloudformation.yaml
+# https://github.com/aws/karpenter/blob/502d275cc330fb0f2435b124935c49632146d945/website/content/en/v0.19.0/getting-started/getting-started-with-eksctl/cloudformation.yaml#L34
 data "aws_iam_policy_document" "karpenter_controller" {
   count = var.create_role && var.attach_karpenter_controller_policy ? 1 : 0
 
   statement {
     actions = [
-      "ec2:CreateLaunchTemplate",
       "ec2:CreateFleet",
+      "ec2:CreateLaunchTemplate",
       "ec2:CreateTags",
-      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeImages",
       "ec2:DescribeImages",
       "ec2:DescribeInstances",
-      "ec2:DescribeSecurityGroups",
-      "ec2:DescribeSubnets",
-      "ec2:DescribeInstanceTypes",
       "ec2:DescribeInstanceTypeOfferings",
-      "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeInstanceTypes",
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeSecurityGroups",
       "ec2:DescribeSpotPriceHistory",
+      "ec2:DescribeSubnets",
       "pricing:GetProducts",
     ]
 
@@ -556,7 +567,6 @@ data "aws_iam_policy_document" "karpenter_controller" {
     actions = ["ec2:RunInstances"]
     resources = [
       "arn:${local.partition}:ec2:*:${local.account_id}:launch-template/*",
-      "arn:${local.partition}:ec2:*:${local.account_id}:security-group/*",
     ]
 
     condition {
@@ -571,6 +581,8 @@ data "aws_iam_policy_document" "karpenter_controller" {
     resources = [
       "arn:${local.partition}:ec2:*::image/*",
       "arn:${local.partition}:ec2:*:${local.account_id}:instance/*",
+      "arn:${local.partition}:ec2:*:${local.account_id}:spot-instances-request/*",
+      "arn:${local.partition}:ec2:*:${local.account_id}:security-group/*",
       "arn:${local.partition}:ec2:*:${local.account_id}:volume/*",
       "arn:${local.partition}:ec2:*:${local.account_id}:network-interface/*",
       "arn:${local.partition}:ec2:*:${coalesce(var.karpenter_subnet_account_id, local.account_id)}:subnet/*",
@@ -585,6 +597,20 @@ data "aws_iam_policy_document" "karpenter_controller" {
   statement {
     actions   = ["iam:PassRole"]
     resources = var.karpenter_controller_node_iam_role_arns
+  }
+
+  dynamic "statement" {
+    for_each = var.karpenter_sqs_queue_arn != null ? [1] : []
+
+    content {
+      actions = [
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ReceiveMessage",
+      ]
+      resources = [var.karpenter_sqs_queue_arn]
+    }
   }
 }
 
@@ -871,12 +897,14 @@ data "aws_iam_policy_document" "load_balancer_controller_targetgroup_only" {
       "ec2:DescribeSecurityGroups",
       "ec2:DescribeInstances",
       "ec2:DescribeVpcs",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress",
       "elasticloadbalancing:DescribeTargetGroups",
       "elasticloadbalancing:DescribeTargetHealth",
       "elasticloadbalancing:ModifyTargetGroup",
       "elasticloadbalancing:ModifyTargetGroupAttributes",
       "elasticloadbalancing:RegisterTargets",
-      "elasticloadbalancing:DeregisterTargets"
+      "elasticloadbalancing:DeregisterTargets",
     ]
 
     resources = ["*"]
