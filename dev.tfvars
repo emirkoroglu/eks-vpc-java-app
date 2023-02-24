@@ -16,7 +16,7 @@ vpc_tags = {
 #########
 
 cluster_name                    = "my-eks"
-cluster_version                 = "1.23"
+cluster_version                 = "1.24"
 cluster_endpoint_private_access = true
 cluster_endpoint_public_access  = true
 
