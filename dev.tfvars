@@ -16,7 +16,7 @@ vpc_tags = {
 #########
 
 cluster_name                    = "my-eks"
-cluster_version                 = "1.24"
+cluster_version                 = "1.27"
 cluster_endpoint_private_access = true
 cluster_endpoint_public_access  = true
 
@@ -35,7 +35,7 @@ eks_managed_node_groups = {
       role = "general"
     }
     instance_types = ["t3.small"]
-    capacity_type  = "ON_DEMAND"
+    capacity_type  = "SPOT"
     taints = [
       {
         key    = "market"
@@ -65,4 +65,4 @@ eks_managed_node_groups = {
 
 
 
-#Use the terraform apply -var-file=my-vars.tfvars  file like this for different tf.vars file.
+#Use the terraform apply -var-file=dev.tfvars  file like this for different tf.vars file.
