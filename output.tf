@@ -17,3 +17,4 @@ output "private_subnets" {
 output "Update-K8-context-first-then-you-will-be-able-to-connect-to-cluster" {
   value = "aws eks update-kubeconfig --name clustername --region us-east-1"
 }
+

@@ -63,6 +63,4 @@ eks_managed_node_groups = {
   }
 }
 
-
-
 #Use the terraform apply -var-file=dev.tfvars  file like this for different tf.vars file.
