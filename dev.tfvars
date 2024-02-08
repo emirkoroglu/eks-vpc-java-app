@@ -15,7 +15,7 @@ vpc_tags = {
 #########################EKS ###########
 #########
 
-cluster_name                    = "my-eks"
+cluster_name                    = "dev-eks"
 cluster_version                 = "1.27"
 cluster_endpoint_private_access = true
 cluster_endpoint_public_access  = true
@@ -30,7 +30,7 @@ eks_managed_node_groups = {
   general = {
     desired_size = 1
     min_size     = 1
-    max_size     = 10
+    max_size     = 3
     labels = {
       role = "general"
     }
@@ -47,7 +47,7 @@ eks_managed_node_groups = {
   spot = {
     desired_size = 1
     min_size     = 1
-    max_size     = 10
+    max_size     = 3
     labels = {
       role = "spot"
     }

@@ -1,3 +1,11 @@
+resource "aws_s3_bucket" "example" {
+  bucket = "dev-team-ops-terraform-state-bucket"
+  tags = {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
+}
+
 terraform {
   backend "s3" {
     bucket = "dev-team-ops-terraform-state-bucket"
